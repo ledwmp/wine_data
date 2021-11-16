@@ -10,6 +10,7 @@ from recordlinkage.base import BaseCompareFeature
 import difflib
 import matplotlib.pyplot as plt
 import re
+from load_GIS import load_GIS
 
 
 #load wine reviews into dataframe
@@ -48,6 +49,8 @@ def find_vintage(tmp):
 
 #extract vintage from title, keep only wines with vintage and points
 df_wine["vintage"] = df_wine["title"].apply(find_vintage)
+plt.hist(df_wine["vintage"],bins=25)
+plt.show()
 mask = (df_wine["vintage"] == np.nan) &\
         (df_wine["points"].astype(str).str.isdigit() == False)
 df_wine = df_wine[~mask]

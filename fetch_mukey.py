@@ -26,6 +26,7 @@ def return_mapunit(coord):
 	point = Point(coord)
 	for i,j in shapes:
 		if point.within(i):
+			print(j)
 			return j[2],j[3]
 	return np.nan,np.nan
 df["MUSYM"],df["MUKEY"] = zip(*df["lon_lat"].map(return_mapunit))
