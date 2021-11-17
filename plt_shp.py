@@ -40,11 +40,12 @@ def plot_full(sf,x_lim = None,y_lim=None,figsize=(5,15)):
 		if (x_lim == None) & (y_lim == None):
 			x0 = np.mean(x)
 			y0 = np.mean(y)
-			if MUKEY_dict[MUKEY] != 0.0:
-				plt.text(x0,y0,MUKEY_dict[MUKEY],fontsize=10)
+			#if MUKEY_dict[MUKEY] != 0.0:
+				#plt.text(x0,y0,MUKEY_dict[MUKEY],fontsize=10)
 	if (x_lim != None) & (y_lim != None):
 		plt.xlim(x_lim)
 		plt.ylim(y_lim)
-
+	plt.xlim(-125,-113.5)
+	plt.ylim(32,42.5)
 plot_full(sf)
 plt.show()

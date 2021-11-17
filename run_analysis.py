@@ -49,13 +49,12 @@ def find_vintage(tmp):
 
 #extract vintage from title, keep only wines with vintage and points
 df_wine["vintage"] = df_wine["title"].apply(find_vintage)
-plt.hist(df_wine["vintage"],bins=25)
-plt.show()
+#plt.hist(df_wine["vintage"])
+#plt.show()
 mask = (df_wine["vintage"] == np.nan) &\
         (df_wine["points"].astype(str).str.isdigit() == False)
 df_wine = df_wine[~mask]
 df_wine["points"] = df_wine["points"].astype(float)
-df_wine["log_price"] = np.log2(df_wine["price"])
 #df_wine.boxplot(column=["points"],by="vintage")
 #plt.show()
 
@@ -65,7 +64,6 @@ with open("../frl-wine-producers-and-blenders-ca_mu.json") as f:
     df_vine = pd.read_json(json.load(f))
 df_vine.rename({"level_0":"region"},inplace=True,axis=1)
 df_vine.drop("level_1",inplace=True,axis=1)
-
 
 #need to populate column with OPERATING NAME, and if empty, then OWNER NAME
 df_vine["OWNER_PARE"] = df_vine["OPERATING NAME"]
@@ -140,10 +138,10 @@ compare.add(lc_substring(0,0))
 compare.exact(0,0)
 compare_vectors = compare.compute(candidate_link,df_test_train,df_test_train)
 compare_vectors.index = compare_vectors.index.set_names(["OPERATOR","OWNER"])
-fig,axs = plt.subplots(1,len(compare_vectors.columns))
-for i in range(len(compare_vectors.columns)):
-    axs[i].hist(compare_vectors[i])
-plt.show()
+#fig,axs = plt.subplots(1,len(compare_vectors.columns))
+#for i in range(len(compare_vectors.columns)):
+#    axs[i].hist(compare_vectors[i])
+#plt.show()
 
 train,test = train_test_split(compare_vectors,test_size=0.2,random_state=42)
 train_matches = train.index & match_indices
@@ -245,12 +243,15 @@ positive = {i:j for i,j in positive}
 df_wine_vine = df_wine.copy(deep=True)
 df_wine_vine["winery_index"] = df_wine_vine.index.map(positive)
 df_wine_vine = df_wine_vine.merge(df_vine,left_on="winery_index",right_on=df_vine.index)
+
+#merge in the climate and GIS data
 df_GIS = load_GIS()
 df_wine_vine = df_wine_vine.merge(df_GIS,left_on="MUKEY",right_on="mukey",)
+
 """
 df_wine_vine.columns =
 ['review_year', 'points', 'title', 'price', 'designation', 'variety',
-       'region_1', 'region_2', 'winery', 'vintage', 'log_price', 'winery_pare',
+       'region_1', 'region_2', 'winery', 'vintage', 'winery_pare',
        'winery_index', 'region', 'PERMIT NUMBER', 'OWNER NAME',
        'OPERATING NAME', 'STREET', 'CITY', 'STATE', 'ZIP', 'COUNTY', 'STREET_',
        'ADDRESS', 'lat', 'lon', 'lon_lat', 'MUSYM', 'MUKEY', 'OWNER_PARE',
@@ -259,3 +260,40 @@ df_wine_vine.columns =
        'nirrcapscl', 'hydgrp', 'taxorder', 'taxsuborder', 'taxgrtgroup',
        'taxsubgrp', 'taxpartsize', 'taxtempcl']
 """
+df_wine_vine.drop(["review_year","title","region_1","designation","winery","winery_index",\
+                    "region","PERMIT NUMBER","OWNER NAME",'OPERATING NAME', 'STREET','CITY',\
+                     'STATE', 'ZIP','STREET_','ADDRESS', 'lat', 'lon', 'lon_lat', 'MUSYM',\
+                      'MUKEY', 'OWNER_PARE','mukey',],inplace=True,axis=1)
+df_wine_vine["vintage"] = pd.to_datetime(df_wine_vine["vintage"],format="%Y")
+
+#if vintage year 2018, grapes grown during summer of 2018. Need Oct.2017-Oct.2018
+#center around January, so...
+date_tmp = ["_"+str(i)+"_T" for i in range(-3,10)]
+date_pct = ["_"+str(i)+"_P" for i in range(-3,10)]
+for i in date_tmp:
+    df_wine_vine[i] = np.nan
+for i in date_pct:
+    df_wine_vine[i] = np.nan
+
+df_tavg,df_pcp = load_climate()
+
+def map_dates(tmp):
+    """Maps vintage dates to climate dataframe
+    """
+    date_pd_low = tmp["vintage"]+pd.DateOffset(months=-3)
+    date_pd_high = tmp["vintage"]+pd.DateOffset(months=10)
+    #date_pd = [tmp["vintage"]+pd.DateOffset(months=i) for i in range(-3,10)]
+    mask = (df_tavg["Location"] == tmp["COUNTY"]) &\
+                ((df_tavg["Date"] >= date_pd_low) & (df_tavg["Date"] < date_pd_high))
+    tavg = df_tavg[mask].Value
+    #tmp[date_tmp] = tavg
+    mask = (df_pcp["Location"] == tmp["COUNTY"]) &\
+                ((df_pcp["Date"] >= date_pd_low) & (df_pcp["Date"] < date_pd_high))
+    pcp = df_pcp[mask].Value
+    out = pd.concat((tavg,pcp),ignore_index=True)
+    return out
+
+df_wine_vine[date_tmp+date_pct] = df_wine_vine.apply(map_dates,axis=1)
+print(df_wine_vine)
+with open("data/fulldataset.json","w") as f:
+	json.dump(df_wine_vine.to_json(),f)
