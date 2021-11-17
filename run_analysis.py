@@ -11,7 +11,7 @@ import difflib
 import matplotlib.pyplot as plt
 import re
 from load_GIS import load_GIS
-
+from load_climate import load_climate
 
 #load wine reviews into dataframe
 scrape_list = []
@@ -245,5 +245,17 @@ positive = {i:j for i,j in positive}
 df_wine_vine = df_wine.copy(deep=True)
 df_wine_vine["winery_index"] = df_wine_vine.index.map(positive)
 df_wine_vine = df_wine_vine.merge(df_vine,left_on="winery_index",right_on=df_vine.index)
-print(df_wine_vine.columns)
-print(df_wine_vine)
+df_GIS = load_GIS()
+df_wine_vine = df_wine_vine.merge(df_GIS,left_on="MUKEY",right_on="mukey",)
+"""
+df_wine_vine.columns =
+['review_year', 'points', 'title', 'price', 'designation', 'variety',
+       'region_1', 'region_2', 'winery', 'vintage', 'log_price', 'winery_pare',
+       'winery_index', 'region', 'PERMIT NUMBER', 'OWNER NAME',
+       'OPERATING NAME', 'STREET', 'CITY', 'STATE', 'ZIP', 'COUNTY', 'STREET_',
+       'ADDRESS', 'lat', 'lon', 'lon_lat', 'MUSYM', 'MUKEY', 'OWNER_PARE',
+       'mukey', 'slope_l', 'slope_r', 'slope_h', 'tfact', 'wei', 'elev_l',
+       'elev_r', 'elev_h', 'nirrcapcl', 'otherph', 'weg', 'drainagecl',
+       'nirrcapscl', 'hydgrp', 'taxorder', 'taxsuborder', 'taxgrtgroup',
+       'taxsubgrp', 'taxpartsize', 'taxtempcl']
+"""
